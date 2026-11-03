@@ -1,7 +1,7 @@
 {
-  "name": "on",
+  "name": "kryptink",
   "version": "1.0.0",
-  "description": "",
+  "description": "Kryptink - Ephemeral Room-Based Collaborative Notepad",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

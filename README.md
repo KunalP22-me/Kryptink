@@ -1,4 +1,4 @@
-# 📝 Online Notepad (ON) — Ephemeral Room-Based Collaborative Notepad
+# 📝 Kryptink — Ephemeral Room-Based Collaborative Notepad
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
@@ -6,7 +6,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-A privacy-first, zero-signup, room-based online notepad built with **Node.js, Express, MongoDB, EJS, and Tailwind CSS**. Share notes instantly via temporary 6-character room codes. All rooms and notes are ephemeral and automatically self-destruct after **24 hours** using MongoDB TTL (Time-To-Live) indexes.
+**Kryptink** is a privacy-first, zero-signup, room-based online notepad built with **Node.js, Express, MongoDB, EJS, and Tailwind CSS**. Share notes instantly via temporary 6-character room codes. All rooms and notes are ephemeral and automatically self-destruct after **24 hours** using MongoDB TTL (Time-To-Live) indexes.
 
 ---
 
@@ -89,7 +89,7 @@ Make sure you have installed:
    Open `.env` and configure your settings:
    ```env
    PORT=8080
-   MONGO_URL=mongodb://127.0.0.1:27017/notepadapp
+   MONGO_URL=mongodb://127.0.0.1:27017/kryptink
    NODE_ENV=development
    ```
 

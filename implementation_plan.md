@@ -1,6 +1,6 @@
-# Notepad App with Authentication & MongoDB
+# Kryptink App with Authentication & MongoDB
 
-Build a full-featured Notepad application in the **ON** folder, combining all patterns learned from the Time folder projects: authentication (JWT + bcrypt), MongoDB storage (Mongoose), CRUD operations, and proper MVC project structure.
+Build a full-featured Kryptink application in the **ON** folder, combining all patterns learned from the Time folder projects: authentication (JWT + bcrypt), MongoDB storage (Mongoose), CRUD operations, and proper MVC project structure.
 
 ## Proposed Changes
 
