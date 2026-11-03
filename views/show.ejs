@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= note.title %> - Kryptink</title>
+    <title>
+        <%= note.title %> - Kryptink
+    </title>
     <link rel="stylesheet" href="/css/style.css">
     <script src="/js/theme.js"></script>
 </head>
+
 <body>
 
     <!-- Navbar (hidden when printing) -->
@@ -28,8 +32,12 @@
             <!-- Header -->
             <div class="show-header">
                 <div>
-                    <h2><%= note.title %></h2>
-                    <p class="show-date"><%= new Date(note.createdAt).toLocaleString() %></p>
+                    <h2>
+                        <%= note.title %>
+                    </h2>
+                    <p class="show-date">
+                        <%= new Date(note.createdAt).toLocaleString() %>
+                    </p>
                 </div>
             </div>
 
@@ -45,6 +53,14 @@
                     </div>
                 </div>
                 <button onclick="toggleFind()" class="util-btn" title="Find & Replace">🔍 Find</button>
+                <button onclick="toggleSpeak()" class="util-btn" id="speakBtn">🔊 Listen</button>
+                <select id="voiceSelect" class="util-btn"></select>
+                <select id="rateSelect" class="util-btn">
+                    <option value="0.8">0.8x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                </select>
                 <span class="util-stats" id="wordCount"></span>
             </div>
 
@@ -157,13 +173,13 @@
             text = text.replace(/<u[^>]*>(.*?)<\/u>/gi, '_$1_');
             text = text.replace(/<s[^>]*>(.*?)<\/s>/gi, '~~$1~~');
             // Unordered list
-            text = text.replace(/<ul[^>]*>(.*?)<\/ul>/gis, function(m, inner) {
+            text = text.replace(/<ul[^>]*>(.*?)<\/ul>/gis, function (m, inner) {
                 return inner.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n') + '\n';
             });
             // Ordered list
-            text = text.replace(/<ol[^>]*>(.*?)<\/ol>/gis, function(m, inner) {
+            text = text.replace(/<ol[^>]*>(.*?)<\/ol>/gis, function (m, inner) {
                 var i = 0;
-                return inner.replace(/<li[^>]*>(.*?)<\/li>/gi, function(m2, item) {
+                return inner.replace(/<li[^>]*>(.*?)<\/li>/gi, function (m2, item) {
                     i++; return i + '. ' + item + '\n';
                 }) + '\n';
             });
@@ -216,14 +232,101 @@
                 toggleFind();
             }
         });
+
+        var synth = window.speechSynthesis;
+        var voices = [];
+        var speaking = false;
+        var queue = [];
+
+        // Hide the controls if the browser doesn't support TTS
+        if (!synth) {
+            ['speakBtn', 'voiceSelect', 'rateSelect'].forEach(function (id) {
+                document.getElementById(id).style.display = 'none';
+            });
+        }
+
+        // Voices load asynchronously in most browsers
+        function loadVoices() {
+            voices = synth.getVoices();
+            var sel = document.getElementById('voiceSelect');
+            sel.innerHTML = '';
+            voices.forEach(function (v, i) {
+                var opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = v.name + ' (' + v.lang + ')';
+                sel.appendChild(opt);
+            });
+        }
+        if (synth) {
+            loadVoices();
+            synth.onvoiceschanged = loadVoices;
+        }
+
+        // Split into sentence-sized chunks (long utterances get cut off in Chrome)
+        function splitIntoChunks(text, max) {
+            var sentences = text.match(/[^.!?\n]+[.!?]*\s*/g) || [text];
+            var chunks = [], current = '';
+            sentences.forEach(function (s) {
+                if ((current + s).length > max) {
+                    if (current) chunks.push(current);
+                    current = s;
+                } else {
+                    current += s;
+                }
+            });
+            if (current) chunks.push(current);
+            return chunks;
+        }
+
+        function speakNext() {
+            if (!queue.length) { stopSpeak(); return; }
+            var u = new SpeechSynthesisUtterance(queue.shift());
+            var v = voices[document.getElementById('voiceSelect').value];
+            if (v) { u.voice = v; u.lang = v.lang; }
+            u.rate = parseFloat(document.getElementById('rateSelect').value);
+            u.onend = speakNext;
+            u.onerror = function (e) {
+                // 'canceled'/'interrupted' fire when we stop on purpose
+                if (e.error !== 'canceled' && e.error !== 'interrupted') stopSpeak();
+            };
+            synth.speak(u);
+        }
+
+        function toggleSpeak() {
+            if (speaking) { stopSpeak(); return; }
+            // Read the selection if there is one, otherwise the whole note
+            var text = window.getSelection().toString().trim() ||
+                document.getElementById('noteContent').textContent.trim();
+            if (!text) return;
+            queue = splitIntoChunks(text, 200);
+            speaking = true;
+            document.getElementById('speakBtn').textContent = '⏹ Stop';
+            speakNext();
+        }
+
+        function stopSpeak() {
+            synth.cancel();
+            queue = [];
+            speaking = false;
+            document.getElementById('speakBtn').textContent = '🔊 Listen';
+        }
+
+        // Don't keep talking after the page closes or navigates away
+        window.addEventListener('beforeunload', function () {
+            if (synth) synth.cancel();
+        });
     </script>
 
     <!-- Footer -->
     <footer class="footer no-print">
         Made with ❤️ by <a href="https://github.com/kunalp22-me" target="_blank" class="footer-link">
-            <svg class="footer-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            <svg class="footer-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+            </svg>
             Creator
         </a>
     </footer>
 </body>
+
 </html>
