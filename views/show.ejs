@@ -54,13 +54,6 @@
                 </div>
                 <button onclick="toggleFind()" class="util-btn" title="Find & Replace">🔍 Find</button>
                 <button onclick="toggleSpeak()" class="util-btn" id="speakBtn">🔊 Listen</button>
-                <select id="voiceSelect" class="util-btn"></select>
-                <select id="rateSelect" class="util-btn">
-                    <option value="0.8">0.8x</option>
-                    <option value="1" selected>1x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                </select>
                 <span class="util-stats" id="wordCount"></span>
             </div>
 
@@ -234,28 +227,24 @@
         });
 
         var synth = window.speechSynthesis;
-        var voices = [];
+        var selectedVoice = null;
         var speaking = false;
         var queue = [];
 
-        // Hide the controls if the browser doesn't support TTS
+        // Hide button if browser doesn't support TTS
         if (!synth) {
-            ['speakBtn', 'voiceSelect', 'rateSelect'].forEach(function (id) {
-                document.getElementById(id).style.display = 'none';
-            });
+            var btn = document.getElementById('speakBtn');
+            if (btn) btn.style.display = 'none';
         }
 
-        // Voices load asynchronously in most browsers
+        // Set voice to Google हिन्दी (hi-IN) or available Hindi voice
         function loadVoices() {
-            voices = synth.getVoices();
-            var sel = document.getElementById('voiceSelect');
-            sel.innerHTML = '';
-            voices.forEach(function (v, i) {
-                var opt = document.createElement('option');
-                opt.value = i;
-                opt.textContent = v.name + ' (' + v.lang + ')';
-                sel.appendChild(opt);
-            });
+            var voices = synth.getVoices();
+            selectedVoice = voices.find(function (v) {
+                return (v.name.includes("Google") && v.lang === "hi-IN") || v.name.includes("Google हिन्दी");
+            }) || voices.find(function (v) {
+                return v.lang === "hi-IN" || v.lang.startsWith("hi");
+            }) || null;
         }
         if (synth) {
             loadVoices();
@@ -281,9 +270,13 @@
         function speakNext() {
             if (!queue.length) { stopSpeak(); return; }
             var u = new SpeechSynthesisUtterance(queue.shift());
-            var v = voices[document.getElementById('voiceSelect').value];
-            if (v) { u.voice = v; u.lang = v.lang; }
-            u.rate = parseFloat(document.getElementById('rateSelect').value);
+            if (selectedVoice) {
+                u.voice = selectedVoice;
+                u.lang = selectedVoice.lang;
+            } else {
+                u.lang = 'hi-IN';
+            }
+            u.rate = 1.0; // 1x speed
             u.onend = speakNext;
             u.onerror = function (e) {
                 // 'canceled'/'interrupted' fire when we stop on purpose
