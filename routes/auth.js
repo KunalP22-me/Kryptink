@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const roomModel = require("../models/room");
 const rateLimit = require("express-rate-limit");
+const crypto = require("crypto");
 
 const joinRoomLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
@@ -28,7 +29,7 @@ function generateCode() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let code = "";
     for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += chars.charAt(crypto.randomInt(chars.length));
     }
     return code;
 }
@@ -92,7 +93,7 @@ router.post("/join-room", joinRoomLimiter, async (req, res) => {
             sameSite: "strict",
             maxAge: 24 * 60 * 60 * 1000
         });
-        
+
         res.redirect("/dashboard");
     } catch (err) {
         console.error(err);
