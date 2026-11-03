@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= note.title %> - Notepad</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body>
+
+    <!-- Navbar (hidden when printing) -->
+    <nav class="navbar no-print">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <span class="logo-text">Notepad</span>
+        </div>
+        <div class="navbar-right">
+            <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
+            <a href="/dashboard" class="btn btn-outline btn-sm">← Back</a>
+        </div>
+    </nav>
+
+    <!-- Note Detail -->
+    <div class="page-container">
+        <div class="show-card" style="max-width:750px">
+
+            <!-- Header -->
+            <div class="show-header">
+                <div>
+                    <h2><%= note.title %></h2>
+                    <p class="show-date"><%= new Date(note.createdAt).toLocaleString() %></p>
+                </div>
+            </div>
+
+            <!-- Utility Toolbar (hidden when printing) -->
+            <div class="utility-bar no-print">
+                <button onclick="printNote()" class="util-btn" title="Print">🖨️ Print</button>
+                <button onclick="copyText()" class="util-btn" title="Copy text">📋 Copy</button>
+                <div class="export-dropdown">
+                    <button onclick="toggleExport()" class="util-btn" title="Export">💾 Export ▾</button>
+                    <div class="export-menu" id="exportMenu">
+                        <button onclick="exportTxt()">📄 Export as .txt</button>
+                        <button onclick="exportMd()">📝 Export as .md</button>
+                    </div>
+                </div>
+                <button onclick="toggleFind()" class="util-btn" title="Find & Replace">🔍 Find</button>
+                <span class="util-stats" id="wordCount"></span>
+            </div>
+
+            <!-- Find & Replace Bar (hidden by default) -->
+            <div class="find-bar no-print" id="findBar" style="display:none">
+                <div class="find-row">
+                    <input type="text" id="findInput" placeholder="Find..." class="find-input">
+                    <input type="text" id="replaceInput" placeholder="Replace with..." class="find-input">
+                    <button onclick="findAndReplace()" class="util-btn">Replace All</button>
+                    <button onclick="toggleFind()" class="util-btn">✕</button>
+                </div>
+                <span class="find-result" id="findResult"></span>
+            </div>
+
+            <!-- Note Content (rendered as HTML) -->
+            <div class="show-content" id="noteContent"><%- note.content %></div>
+
+            <!-- Actions (hidden when printing) -->
+            <div class="show-actions no-print">
+                <a href="/note/edit/<%= note._id %>" class="btn btn-outline btn-sm">✏️ Edit</a>
+                <form action="/note/delete/<%= note._id %>" method="POST" style="display:inline">
+                    <button type="submit" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Word count on load
+        (function () {
+            var el = document.getElementById('noteContent');
+            var text = el.textContent.trim();
+            var words = text.length > 0 ? text.split(/\s+/).length : 0;
+            var chars = text.length;
+            document.getElementById('wordCount').textContent = words + ' words · ' + chars + ' chars';
+        })();
+
+        // Print
+        function printNote() {
+            window.print();
+        }
+
+        // Copy text content
+        function copyText() {
+            var text = document.getElementById('noteContent').textContent;
+            navigator.clipboard.writeText(text).then(function () {
+                var btn = event.target;
+                var original = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(function () { btn.textContent = original; }, 1500);
+            });
+        }
+
+        // Toggle export dropdown
+        function toggleExport() {
+            var menu = document.getElementById('exportMenu');
+            menu.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.export-dropdown')) {
+                var menu = document.getElementById('exportMenu');
+                if (menu) menu.classList.remove('show');
+            }
+        });
+
+        // Helper: download a file
+        function downloadFile(content, filename, type) {
+            var blob = new Blob([content], { type: type });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Export as .txt (plain text)
+        function exportTxt() {
+            var title = "<%= note.title %>";
+            var text = document.getElementById('noteContent').textContent;
+            downloadFile(text, title.replace(/\s+/g, '_') + '.txt', 'text/plain');
+            document.getElementById('exportMenu').classList.remove('show');
+        }
+
+        // Export as .md (Markdown)
+        function exportMd() {
+            var title = "<%= note.title %>";
+            var html = document.getElementById('noteContent').innerHTML;
+
+            // Convert HTML to Markdown
+            var md = '# ' + title + '\n\n';
+            md += htmlToMarkdown(html);
+
+            downloadFile(md, title.replace(/\s+/g, '_') + '.md', 'text/markdown');
+            document.getElementById('exportMenu').classList.remove('show');
+        }
+
+        // HTML → Markdown converter
+        function htmlToMarkdown(html) {
+            var text = html;
+            // Headers
+            text = text.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n');
+            text = text.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n');
+            text = text.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n');
+            // Bold, Italic, Underline, Strike
+            text = text.replace(/<(strong|b)[^>]*>(.*?)<\/(strong|b)>/gi, '**$2**');
+            text = text.replace(/<(em|i)[^>]*>(.*?)<\/(em|i)>/gi, '*$2*');
+            text = text.replace(/<u[^>]*>(.*?)<\/u>/gi, '_$1_');
+            text = text.replace(/<s[^>]*>(.*?)<\/s>/gi, '~~$1~~');
+            // Unordered list
+            text = text.replace(/<ul[^>]*>(.*?)<\/ul>/gis, function(m, inner) {
+                return inner.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n') + '\n';
+            });
+            // Ordered list
+            text = text.replace(/<ol[^>]*>(.*?)<\/ol>/gis, function(m, inner) {
+                var i = 0;
+                return inner.replace(/<li[^>]*>(.*?)<\/li>/gi, function(m2, item) {
+                    i++; return i + '. ' + item + '\n';
+                }) + '\n';
+            });
+            // Line breaks and paragraphs
+            text = text.replace(/<br\s*\/?>/gi, '\n');
+            text = text.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
+            // Remove remaining HTML tags
+            text = text.replace(/<[^>]*>/g, '');
+            // Clean up extra newlines
+            text = text.replace(/\n{3,}/g, '\n\n');
+            return text.trim();
+        }
+
+        // Toggle Find & Replace bar
+        function toggleFind() {
+            var bar = document.getElementById('findBar');
+            bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
+            if (bar.style.display !== 'none') {
+                document.getElementById('findInput').focus();
+            }
+        }
+
+        // Find & Replace in content
+        function findAndReplace() {
+            var findText = document.getElementById('findInput').value;
+            var replaceText = document.getElementById('replaceInput').value;
+            var content = document.getElementById('noteContent');
+            var resultEl = document.getElementById('findResult');
+
+            if (!findText) return;
+
+            var html = content.innerHTML;
+            var regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            var matches = html.match(regex);
+
+            if (matches && matches.length > 0) {
+                content.innerHTML = html.replace(regex, replaceText);
+                resultEl.textContent = 'Replaced ' + matches.length + ' match(es)';
+                resultEl.style.color = 'var(--accent-green)';
+            } else {
+                resultEl.textContent = 'No matches found';
+                resultEl.style.color = 'var(--accent-red)';
+            }
+        }
+
+        // Ctrl+F shortcut for find
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                toggleFind();
+            }
+        });
+    </script>
+
+    <!-- Footer -->
+    <footer class="footer no-print">
+        Made with ❤️ by <a href="https://github.com/kunalp22-me" target="_blank" class="footer-link">
+            <svg class="footer-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            Creator
+        </a>
+    </footer>
+</body>
+</html>
