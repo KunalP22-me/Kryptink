@@ -14,6 +14,4 @@ const noteSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-noteSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
 module.exports = mongoose.model("note", noteSchema);
