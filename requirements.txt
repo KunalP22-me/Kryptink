@@ -1,0 +1,101 @@
+================================================================================
+KRYPTINK - SYSTEM & SOFTWARE REQUIREMENTS SPECIFICATION
+================================================================================
+Project Name  : Kryptink (Ephemeral Room-Based Collaborative Notepad)
+Architecture  : Model-View-Controller (MVC)
+Runtime       : Node.js (CommonJS)
+Database      : MongoDB (Mongoose ODM)
+Last Updated  : 2026-11-18
+================================================================================
+
+1. SYSTEM & RUNTIME PREREQUISITES
+--------------------------------------------------------------------------------
+- Operating System  : Windows 10/11, macOS (10.15+), or Linux (Ubuntu 20.04+, Debian, CentOS)
+- Node.js Runtime   : Node.js v16.x or higher (v18.x / v20.x LTS recommended)
+- Package Manager   : npm v8.x+ (comes bundled with Node.js)
+- Database Engine   : MongoDB Community Server v5.0+ OR MongoDB Atlas (Cloud)
+- Version Control   : Git 2.30+ (for source management and deployments)
+
+2. CORE APPLICATION DEPENDENCIES (NPM PACKAGES)
+--------------------------------------------------------------------------------
+Package                  Version     Purpose / Responsibility
+-----------------------  ----------  --------------------------------------------
+express                  ^5.2.1      Core HTTP web server framework and routing
+mongoose                 ^9.10.0     MongoDB Object Data Modeling (ODM) & schemas
+ejs                      ^6.0.1      Server-side HTML templating engine
+dotenv                   ^17.4.2     Loads environment configurations from .env
+cookie-parser            ^1.4.7      Parses and signs HTTP request cookies
+bcrypt                   ^6.0.0      Password and credential hashing utility
+jsonwebtoken             ^9.0.3      JSON Web Token (JWT) generation & signing
+helmet                   ^8.3.0      Secures Express apps by setting HTTP headers
+express-mongo-sanitize   ^2.2.0      Prevents MongoDB operator ($ / .) injection
+express-rate-limit       ^8.7.0      Rate limits client requests to stop DDoS/spam
+sanitize-html            ^2.17.7     AST-based HTML sanitizer to stop XSS attacks
+path                     ^0.12.7     Cross-platform file path resolution utility
+router                   ^2.2.0      Middleware routing assistant
+
+3. DEVELOPMENT & TOOLING DEPENDENCIES
+--------------------------------------------------------------------------------
+nodemon                  ^3.1.14     Auto-restarts server on source file changes
+
+4. REQUIRED ENVIRONMENT VARIABLES (.env)
+--------------------------------------------------------------------------------
+Variable Name   Type     Default Value / Example              Description
+--------------  -------  -----------------------------------  ------------------
+PORT            Number   8080                                 Local server port
+MONGO_URL       String   mongodb://127.0.0.1:27017/kryptink   MongoDB URI
+NODE_ENV        String   development                          Runtime environment
+                                                              (development/production)
+
+5. CLIENT-SIDE & FRONTEND DEPENDENCIES (CDN / BROWSER APIS)
+--------------------------------------------------------------------------------
+Component           Version / Source            Usage
+------------------  --------------------------  --------------------------------
+Quill.js            v1.3.7 (CDN)                Rich-text WYSIWYG editor
+Quill Snow Theme    v1.3.7 (CDN)                Dark/Light editor skin styling
+Web Speech API      Browser Native (W3C)        Client-side TTS (Google hi-IN)
+Web Storage API     Browser Native (HTML5)      localStorage theme persistence
+Clipboard API       Browser Native (HTML5)      One-click note and code copying
+Print Media API     Browser Native (CSS3)       Clean print styling without UI
+
+6. DATABASE REQUIREMENTS & TTL INDEXES
+--------------------------------------------------------------------------------
+- Database Name     : kryptink
+- Collections       : 
+    1. rooms        : Stores 6-character room codes and references to notes
+    2. notes        : Stores note titles, rich-text HTML bodies, and room refs
+- Background TTL    : Both collections must enforce a MongoDB TTL index on
+                      `expiresAt` with `expireAfterSeconds: 0` for 24h expiration.
+- Cascading Hooks   : Mongoose `findOneAndDelete` pre-hook must cascade-delete
+                      all notes associated with an expiring or deleted room.
+
+7. SECURITY & INTEGRITY SPECIFICATIONS
+--------------------------------------------------------------------------------
+- Cryptographic CSPRNG:
+    * Room codes must be generated using `crypto.randomInt` (kernel entropy).
+    * Prevents sequence prediction, brute-forcing, and modulo bias.
+- Rate Limiting Policy:
+    * Room Creation   : Maximum 3 rooms per minute per IP address.
+    * Room Join       : Maximum 5 attempts per minute per IP address.
+- Session Security:
+    * Cookies must be flagged: `httpOnly: true`, `sameSite: 'strict'`,
+      and `secure: true` when running in production (`NODE_ENV=production`).
+- XSS & UI Redressing Defense:
+    * HTML input must be sanitized via `sanitize-html`.
+    * Inline `style` attribute must be completely stripped.
+    * Only legitimate Quill CSS classes (`ql-align-*`, `ql-size-*`) are whitelisted.
+- Payload Controls:
+    * Maximum JSON & URL-encoded request body size limited to 1MB.
+    * Base64 image paste blocked in Quill editor to prevent database bloat.
+
+8. BROWSER COMPATIBILITY
+--------------------------------------------------------------------------------
+- Google Chrome     : Version 90+ (Recommended for best Web Speech TTS support)
+- Mozilla Firefox   : Version 88+
+- Microsoft Edge    : Version 90+
+- Apple Safari      : Version 14+
+
+================================================================================
+END OF REQUIREMENTS SPECIFICATION
+================================================================================
+
